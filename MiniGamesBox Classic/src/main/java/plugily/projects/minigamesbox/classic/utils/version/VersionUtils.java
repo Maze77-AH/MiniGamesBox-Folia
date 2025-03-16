@@ -323,27 +323,34 @@ public final class VersionUtils {
 
   public static void updateNameTagsVisibility(Player player, Player other, String tag, boolean remove) {
     Scoreboard scoreboard = other.getScoreboard();
-    if(scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
-      scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+    if(scoreboard == null) {
+        scoreboard = Bukkit.getScoreboardManager().getMainScoreboard();
+    }
+    if(scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()){
+        return;
     }
     Team team = scoreboard.getTeam(tag);
-    if(team == null) {
-      team = scoreboard.registerNewTeam(tag);
+    if(team == null){
+        try {
+            team = scoreboard.registerNewTeam(tag);
+        } catch (UnsupportedOperationException ex) {
+            return;
+        }
     }
     team.setCanSeeFriendlyInvisibles(false);
-    if(ServerVersion.Version.isCurrentEqualOrHigher(ServerVersion.Version.v1_11)) {
-      team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+    if(ServerVersion.Version.isCurrentEqualOrHigher(ServerVersion.Version.v1_11)){
+        team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
     } else {
-      team.setNameTagVisibility(NameTagVisibility.NEVER);
+        team.setNameTagVisibility(NameTagVisibility.NEVER);
     }
     if(!remove) {
-      team.addEntry(player.getName());
+        team.addEntry(player.getName());
     } else {
-      team.removeEntry(player.getName());
+        team.removeEntry(player.getName());
     }
+    
     other.setScoreboard(scoreboard);
-  }
-
+}
 
   public static Entity getPassenger(Entity ent) {
     if(ServerVersion.Version.isCurrentLower(ServerVersion.Version.v1_13)) {
