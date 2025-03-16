@@ -263,6 +263,6 @@ public class SetupInventory {
   }
 
   public void closeInventory(HumanEntity humanEntity) {
-    Bukkit.getScheduler().runTask(plugin, () -> humanEntity.closeInventory());
+    Bukkit.getGlobalRegionScheduler().execute(plugin, () -> humanEntity.closeInventory());
   }
 }

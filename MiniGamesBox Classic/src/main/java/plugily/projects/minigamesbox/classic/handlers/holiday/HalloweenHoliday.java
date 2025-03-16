@@ -34,6 +34,7 @@ import plugily.projects.minigamesbox.classic.utils.version.VersionUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Tigerpanzer_02
@@ -100,14 +101,14 @@ public class HalloweenHoliday implements Holiday, Listener {
         bats.add(bat);
       }
 
-      Bukkit.getScheduler().runTaskLater(plugin, () -> {
-        for(Entity bat : bats) {
-          bat.getWorld().playEffect(bat.getLocation(), Effect.SMOKE, 3);
-          bat.remove();
-        }
-
-        bats.clear();
-      }, 30);
+    Bukkit.getAsyncScheduler().runDelayed(plugin, task ->
+        Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+            for (Entity bat : bats) {
+                bat.getWorld().playEffect(bat.getLocation(), Effect.SMOKE, 3);
+                bat.remove();
+            }
+            bats.clear();
+        }), 30L * 50, TimeUnit.MILLISECONDS);
     }
   }
 

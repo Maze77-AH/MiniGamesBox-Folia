@@ -92,6 +92,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 /**
@@ -271,7 +272,11 @@ public class PluginMain extends JavaPlugin implements IPluginMain {
         new File(getDataFolder() + "/internal").mkdir();
       }
       //running later due to plugin specific stats
-      Bukkit.getScheduler().runTaskLater(this, () -> leaderboardRegistry = new LeaderboardRegistry(this), 20L * 15);
+      Bukkit.getAsyncScheduler().runDelayed(this, task ->
+          Bukkit.getGlobalRegionScheduler().execute(this, () ->
+              leaderboardRegistry = new LeaderboardRegistry(this)
+          ),
+      15000L, TimeUnit.MILLISECONDS);
     }
     new CycleEvents(this);
   }

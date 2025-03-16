@@ -35,6 +35,7 @@ import plugily.projects.minigamesbox.classic.utils.version.events.api.PlugilyPla
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class KitAbility implements IKitAbility {
@@ -47,20 +48,21 @@ public class KitAbility implements IKitAbility {
         return;
       }
       IUser user = plugin.getUserManager().getUser((Player) inventoryClickEvent.getWhoClicked());
-      Bukkit.getScheduler().runTaskLater(plugin, () -> {
-        for(ItemStack stack : inventoryClickEvent.getWhoClicked().getInventory().getArmorContents()) {
-          if(stack == null || !ArmorHelper.getArmorTypes().contains(stack.getType())) {
-            continue;
-          }
-          //we cannot cancel event using scheduler, we must remove all armor contents from inventory manually
-          new MessageBuilder("KIT_CANNOT_WEAR_ARMOR").asKey().send(user.getPlayer());
-          inventoryClickEvent.getWhoClicked().getInventory().setHelmet(new ItemStack(Material.AIR, 1));
-          inventoryClickEvent.getWhoClicked().getInventory().setChestplate(new ItemStack(Material.AIR, 1));
-          inventoryClickEvent.getWhoClicked().getInventory().setLeggings(new ItemStack(Material.AIR, 1));
-          inventoryClickEvent.getWhoClicked().getInventory().setBoots(new ItemStack(Material.AIR, 1));
-          return;
-        }
-      }, 1);
+      Bukkit.getAsyncScheduler().runDelayed(plugin, task -> 
+          Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+              for (ItemStack stack : inventoryClickEvent.getWhoClicked().getInventory().getArmorContents()) {
+                  if (stack == null || !ArmorHelper.getArmorTypes().contains(stack.getType())) {
+                      continue;
+                  }
+                  new MessageBuilder("KIT_CANNOT_WEAR_ARMOR").asKey().send(user.getPlayer());
+                  inventoryClickEvent.getWhoClicked().getInventory().setHelmet(new ItemStack(Material.AIR, 1));
+                  inventoryClickEvent.getWhoClicked().getInventory().setChestplate(new ItemStack(Material.AIR, 1));
+                  inventoryClickEvent.getWhoClicked().getInventory().setLeggings(new ItemStack(Material.AIR, 1));
+                  inventoryClickEvent.getWhoClicked().getInventory().setBoots(new ItemStack(Material.AIR, 1));
+                  return;
+              }
+          }),
+      50L, TimeUnit.MILLISECONDS);
     }, playerInteractHandler -> {
       if(ArmorHelper.getArmorTypes().contains(playerInteractHandler.getItem().getType())) {
         playerInteractHandler.setCancelled(true);

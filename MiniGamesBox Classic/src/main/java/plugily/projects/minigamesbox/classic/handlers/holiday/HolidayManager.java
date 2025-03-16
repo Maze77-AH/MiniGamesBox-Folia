@@ -26,6 +26,7 @@ import plugily.projects.minigamesbox.classic.PluginMain;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Tigerpanzer_02
@@ -49,16 +50,16 @@ public class HolidayManager {
     registeredHolidays.add(new HalloweenHoliday());
     registeredHolidays.add(new ValentineHoliday());
 
-    // Enable holidays after other plugins are enabled (after other addons register their holidays)
-    Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-      LocalDateTime time = LocalDateTime.now();
-      registeredHolidays.stream()
-          .filter(holiday -> holiday.isHoliday(time))
-          .forEach(holiday -> {
-            holiday.enable(plugin);
-            enabledHolidays.add(holiday);
-          });
-    });
+    Bukkit.getAsyncScheduler().runDelayed(plugin, task ->
+    Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+        LocalDateTime time = LocalDateTime.now();
+        registeredHolidays.stream()
+            .filter(h -> h.isHoliday(time))
+            .forEach(h -> {
+                h.enable(plugin);
+                enabledHolidays.add(h);
+            });
+    }), 0L, TimeUnit.MILLISECONDS);
   }
 
   /**

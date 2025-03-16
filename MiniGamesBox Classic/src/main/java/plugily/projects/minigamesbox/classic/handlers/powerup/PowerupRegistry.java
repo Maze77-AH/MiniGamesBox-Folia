@@ -40,6 +40,7 @@ import plugily.projects.minigamesbox.number.NumberUtils;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 /**
@@ -115,11 +116,21 @@ public class PowerupRegistry {
         }
         int duration = getLongestEffect(pickup.getPowerup());
 
-        if(duration != 0) {
-          Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            new MessageBuilder(config.getString("Powerups.Ended.Chat", "")).arena(pickup.getArena()).player(pickup.getPlayer()).value(pickup.getPowerup().getName()).sendArena();
-            new TitleBuilder(config.getString("Powerups.Ended.Title", "")).arena(pickup.getArena()).player(pickup.getPlayer()).value(pickup.getPowerup().getName()).sendArena();
-          }, duration);
+        if (duration != 0) {
+            Bukkit.getAsyncScheduler().runDelayed(plugin, task ->
+                Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+                    new MessageBuilder(config.getString("Powerups.Ended.Chat", ""))
+                        .arena(pickup.getArena())
+                        .player(pickup.getPlayer())
+                        .value(pickup.getPowerup().getName())
+                        .sendArena();
+                    new TitleBuilder(config.getString("Powerups.Ended.Title", ""))
+                        .arena(pickup.getArena())
+                        .player(pickup.getPlayer())
+                        .value(pickup.getPowerup().getName())
+                        .sendArena();
+                }),
+            duration * 50L, TimeUnit.MILLISECONDS);
         }
 
         plugin.getRewardsHandler().performReward(pickup.getPlayer(), pickup.getArena(), pickup.getPowerup().getRewards());
@@ -191,11 +202,13 @@ public class PowerupRegistry {
       powerup.getOnPickup().accept(new PowerupPickupHandler(powerup, arena, player));
       hologram.delete();
     });
-    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-      if(!hologram.isDeleted()) {
-        hologram.delete();
-      }
-    }, /* remove after 40 seconds to prevent staying even if arena is finished */ 20 * 40);
+    Bukkit.getAsyncScheduler().runDelayed(plugin, task ->
+    Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+        if (!hologram.isDeleted()) {
+            hologram.delete();
+        }
+    }),
+    20L * 40L * 50L, TimeUnit.MILLISECONDS);
   }
 
   /**

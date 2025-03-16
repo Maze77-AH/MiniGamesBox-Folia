@@ -34,6 +34,7 @@ import plugily.projects.minigamesbox.classic.utils.version.VersionUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Tigerpanzer_02
@@ -79,10 +80,11 @@ public class AprilFoolsHoliday implements Holiday, Listener {
       item.setVelocity(getRandomVector());
       diamonds.add(item);
     }
-    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-      diamonds.forEach(Item::remove);
-      diamonds.clear();
-    }, 30);
+    Bukkit.getAsyncScheduler().runDelayed(plugin, task ->
+        Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+            diamonds.forEach(Item::remove);
+            diamonds.clear();
+        }), 30L, TimeUnit.MILLISECONDS);
   }
 
   @EventHandler

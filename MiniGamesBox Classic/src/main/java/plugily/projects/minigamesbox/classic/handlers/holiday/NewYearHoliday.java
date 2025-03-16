@@ -28,9 +28,14 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import plugily.projects.minigamesbox.classic.PluginMain;
 import plugily.projects.minigamesbox.classic.utils.version.VersionUtils;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.EntityType;
+
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * @author Tigerpanzer_02
@@ -75,19 +80,19 @@ public class NewYearHoliday implements Holiday, Listener {
 
   @EventHandler
   public void onArrowShoot(EntityShootBowEvent e) {
-    if(e.getEntityType() != org.bukkit.entity.EntityType.PLAYER || plugin.getArenaRegistry().getArena((Player) e.getEntity()) == null) {
-      return;
-    }
-    Entity en = e.getProjectile();
-    new BukkitRunnable() {
-      @Override
-      public void run() {
-        if(en.isOnGround() || en.isDead()) {
-          cancel();
+      if (e.getEntityType() != EntityType.PLAYER || plugin.getArenaRegistry().getArena((Player) e.getEntity()) == null) {
           return;
-        }
-        VersionUtils.sendParticles("FIREWORKS_SPARK", (Set<Player>) null, en.getLocation(), 1);
       }
-    }.runTaskTimer(plugin, 1, 1);
+      Entity en = e.getProjectile();
+      ScheduledTask task = Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
+          // Switch to the main thread for Bukkit API calls:
+          Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+              if (en.isOnGround() || en.isDead()) {
+                  scheduledTask.cancel();
+                  return;
+              }
+              VersionUtils.sendParticles("FIREWORKS_SPARK", (Set<Player>) null, en.getLocation(), 1);
+          });
+      }, 1L, 1L, TimeUnit.MILLISECONDS);
   }
 }
