@@ -18,6 +18,8 @@
 
 package plugily.projects.minigamesbox.classic.events;
 
+import java.util.concurrent.TimeUnit;
+
 import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.World;
@@ -41,7 +43,9 @@ public class CycleEvents implements Listener {
   public CycleEvents(PluginMain plugin) {
     this.plugin = plugin;
     plugin.getServer().getPluginManager().registerEvents(this, plugin);
-    Bukkit.getScheduler().runTaskLater(plugin, this::changeWorldCycles, 20L * 5);
+    Bukkit.getAsyncScheduler().runDelayed(plugin, task ->
+        Bukkit.getGlobalRegionScheduler().execute(plugin, this::changeWorldCycles),
+    20L * 5, TimeUnit.MILLISECONDS);
   }
 
   @EventHandler

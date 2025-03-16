@@ -31,6 +31,7 @@ import plugily.projects.minigamesbox.classic.utils.configuration.ConfigUtils;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Tigerpanzer_02
@@ -59,7 +60,9 @@ public class DeleteArgument {
         }
         if(!confirmations.contains(sender)) {
           confirmations.add(sender);
-          Bukkit.getScheduler().runTaskLater(registry.getPlugin(), () -> confirmations.remove(sender), 20L * 10);
+        Bukkit.getAsyncScheduler().runDelayed(registry.getPlugin(), task ->
+            Bukkit.getGlobalRegionScheduler().execute(registry.getPlugin(), () -> confirmations.remove(sender)),
+        10000L, TimeUnit.MILLISECONDS);
           new MessageBuilder("&cAre you sure you want to do this action? Type the command again &6within 10 seconds &cto confirm!").prefix().send(sender);
           return;
         }

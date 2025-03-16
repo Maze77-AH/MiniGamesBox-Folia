@@ -38,7 +38,10 @@ import plugily.projects.minigamesbox.classic.utils.misc.MiscUtils;
 import plugily.projects.minigamesbox.classic.utils.misc.complement.ComplementAccessor;
 import plugily.projects.minigamesbox.classic.utils.version.VersionUtils;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * @author Tigerpanzer_02
@@ -293,22 +296,22 @@ public class PluginArenaManager {
   }
 
   private void spawnFireworks(IPluginArena arena, Player player) {
-    if(!plugin.getConfigPreferences().getOption("FIREWORK")) {
-      return;
-    }
-    new BukkitRunnable() {
-      int i = 0;
-
-      @Override
-      public void run() {
-        if(i == 4 || arena.getArenaState() == IArenaState.RESTARTING || !arena.getPlayers().contains(player)) {
-          cancel();
+      if (!plugin.getConfigPreferences().getOption("FIREWORK")) {
           return;
-        }
-        MiscUtils.spawnRandomFirework(player.getLocation());
-        i++;
       }
-    }.runTaskTimer(plugin, 30, 30);
+      
+      AtomicInteger counter = new AtomicInteger(0);
+      ScheduledTask task = Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
+          // Execute on the main thread for Bukkit API safety
+          Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+              if (counter.get() == 4 || arena.getArenaState() == IArenaState.RESTARTING || !arena.getPlayers().contains(player)) {
+                  scheduledTask.cancel();
+                  return;
+              }
+              MiscUtils.spawnRandomFirework(player.getLocation());
+              counter.incrementAndGet();
+          });
+      }, 30L, 30L, TimeUnit.MILLISECONDS);
   }
 
 }

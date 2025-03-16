@@ -41,8 +41,10 @@ import plugily.projects.minigamesbox.classic.arena.options.ArenaOption;
 import plugily.projects.minigamesbox.classic.arena.states.*;
 import plugily.projects.minigamesbox.classic.utils.configuration.ConfigUtils;
 import plugily.projects.minigamesbox.classic.utils.version.VersionUtils;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Tigerpanzer_02
@@ -387,7 +389,9 @@ public class PluginArena extends BukkitRunnable implements IPluginArena {
 
   public void start() {
     plugin.getDebugger().debug("[{0}] Instance started", id);
-    runTaskTimer(plugin, 20L, 20L);
+  ScheduledTask task = Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
+      // Your repeating code here
+  }, 20L, 20L, TimeUnit.MILLISECONDS);
     setArenaState(IArenaState.WAITING_FOR_PLAYERS, true);
   }
 

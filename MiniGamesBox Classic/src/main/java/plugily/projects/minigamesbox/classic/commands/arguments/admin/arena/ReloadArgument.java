@@ -29,6 +29,7 @@ import plugily.projects.minigamesbox.classic.handlers.language.MessageBuilder;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Tigerpanzer_02
@@ -46,7 +47,9 @@ public class ReloadArgument {
       public void execute(CommandSender sender, String[] args) {
         if(!confirmations.contains(sender)) {
           confirmations.add(sender);
-          Bukkit.getScheduler().runTaskLater(registry.getPlugin(), () -> confirmations.remove(sender), 20L * 10);
+          Bukkit.getAsyncScheduler().runDelayed(registry.getPlugin(), task ->
+              Bukkit.getGlobalRegionScheduler().execute(registry.getPlugin(), () -> confirmations.remove(sender)),
+          10000L, TimeUnit.MILLISECONDS);
           new MessageBuilder("&cAre you sure you want to do this action? Type the command again &6within 10 seconds &cto confirm!").prefix().send(sender);
           return;
         }
@@ -61,12 +64,14 @@ public class ReloadArgument {
 
         new MessageBuilder("&cStopping arenas... Waiting for completion of restarting stage! (ETA: " + time + " s)").prefix().send(sender);
 
-        Bukkit.getScheduler().runTaskLater(registry.getPlugin(), () -> {
-          registry.getPlugin().reloadConfig();
-          registry.getPlugin().getLanguageManager().reloadLanguage();
-          registry.getPlugin().getArenaRegistry().registerArenas();
-          new MessageBuilder("COMMANDS_ADMIN_RELOAD_SUCCESS").asKey().send(sender);
-        }, time);
+        Bukkit.getAsyncScheduler().runDelayed(registry.getPlugin(), task ->
+        Bukkit.getGlobalRegionScheduler().execute(registry.getPlugin(), () -> {
+            registry.getPlugin().reloadConfig();
+            registry.getPlugin().getLanguageManager().reloadLanguage();
+            registry.getPlugin().getArenaRegistry().registerArenas();
+            new MessageBuilder("COMMANDS_ADMIN_RELOAD_SUCCESS").asKey().send(sender);
+        }),
+        time * 50L, TimeUnit.MILLISECONDS);    
       }
     });
   }

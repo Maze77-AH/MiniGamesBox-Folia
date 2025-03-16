@@ -17,6 +17,8 @@
  */
 package plugily.projects.minigamesbox.classic.events.spectator;
 
+import java.util.concurrent.TimeUnit;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Creature;
@@ -175,7 +177,11 @@ public class SpectatorEvents implements Listener {
     if(plugin.getUserManager().getUser(e.getPlayer()).isSpectator()) {
       Location loc = e.getPlayer().getLocation();
       e.setAmount(0);
-      Bukkit.getScheduler().runTaskLater(plugin, () -> loc.getWorld().spawnEntity(loc, EntityType.EXPERIENCE_ORB), 30);
+      Bukkit.getAsyncScheduler().runDelayed(plugin, task ->
+          Bukkit.getGlobalRegionScheduler().execute(plugin, () ->
+              loc.getWorld().spawnEntity(loc, EntityType.EXPERIENCE_ORB)
+          ),
+      30L * 50, TimeUnit.MILLISECONDS);
     }
   }
 
