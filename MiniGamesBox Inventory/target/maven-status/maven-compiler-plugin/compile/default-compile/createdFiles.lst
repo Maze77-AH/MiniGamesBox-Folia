@@ -1,0 +1,7 @@
+plugily/projects/minigamesbox/inventory/common/RefreshableFastInv.class
+plugily/projects/minigamesbox/inventory/boot/InventoryManager.class
+plugily/projects/minigamesbox/inventory/common/item/ItemMap.class
+plugily/projects/minigamesbox/inventory/common/item/SimpleClickableItem.class
+plugily/projects/minigamesbox/inventory/normal/NormalFastInv.class
+plugily/projects/minigamesbox/inventory/paged/PagedFastInv.class
+plugily/projects/minigamesbox/inventory/common/item/ClickableItem.class
