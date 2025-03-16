@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Tigerpanzer_02
@@ -54,7 +55,9 @@ public class UserManager implements IUserManager {
     } else {
       database = new FileStats(plugin);
     }
-    Bukkit.getScheduler().runTaskLater(plugin, this::loadStatsForPlayersOnline, 40);
+    Bukkit.getAsyncScheduler().runDelayed(plugin, task -> 
+        Bukkit.getGlobalRegionScheduler().execute(plugin, this::loadStatsForPlayersOnline),
+    40L, TimeUnit.MILLISECONDS);
   }
 
   private void loadStatsForPlayersOnline() {

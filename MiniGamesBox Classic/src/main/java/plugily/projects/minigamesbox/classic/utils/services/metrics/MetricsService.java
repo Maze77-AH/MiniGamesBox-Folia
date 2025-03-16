@@ -65,44 +65,47 @@ public class MetricsService {
           timer.cancel();
           return;
         }
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
           try {
-            final byte[] post = ("pass=metricsservice&type=" + plugin.getName() + "&pluginversion=" + plugin.getDescription().getVersion() +
-                "&serverversion=" + plugin.getServer().getBukkitVersion() + "&ip=" + InetAddress.getLocalHost().getHostAddress() + ":" + plugin.getServer().getPort() +
-                "&playersonline=" + Bukkit.getOnlinePlayers().size()).getBytes("UTF-8");
-            new Thread(() -> {
-              try {
-                plugin.getLogger().log(Level.FINE, "Metrics data sent!");
-                URL url = new URL("https://api.plugily.xyz/metrics/receiver.php");
-                HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("User-Agent", "PLMetrics/1.0");
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                conn.setDoOutput(true);
-
-                OutputStream os = conn.getOutputStream();
-                os.write(post);
-                os.flush();
-                os.close();
-                StringBuilder content;
-
-                try(BufferedReader in = new BufferedReader(
-                    new InputStreamReader(conn.getInputStream()))) {
-
-                  String line;
-                  content = new StringBuilder();
-
-                  while((line = in.readLine()) != null) {
-                    content.append(line);
-                    content.append(System.lineSeparator());
+              final byte[] post = ("pass=metricsservice&type=" + plugin.getName() +
+                  "&pluginversion=" + plugin.getDescription().getVersion() +
+                  "&serverversion=" + plugin.getServer().getBukkitVersion() +
+                  "&ip=" + InetAddress.getLocalHost().getHostAddress() + ":" + plugin.getServer().getPort() +
+                  "&playersonline=" + Bukkit.getOnlinePlayers().size()).getBytes("UTF-8");
+      
+              new Thread(() -> {
+                  try {
+                      plugin.getLogger().log(Level.FINE, "Metrics data sent!");
+                      URL url = new URL("https://api.plugily.xyz/metrics/receiver.php");
+                      HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
+                      conn.setRequestMethod("POST");
+                      conn.setRequestProperty("User-Agent", "PLMetrics/1.0");
+                      conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                      conn.setDoOutput(true);
+      
+                      try (OutputStream os = conn.getOutputStream()) {
+                          os.write(post);
+                          os.flush();
+                      }
+      
+                      StringBuilder content = new StringBuilder();
+                      try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                          String line;
+                          while ((line = in.readLine()) != null) {
+                              content.append(line).append(System.lineSeparator());
+                          }
+                      }
+      
+                      plugin.getLogger().log(Level.FINE, "Metrics response: " + content.toString());
+                  } catch (IOException ignored) {
+                      // Fail silently on network errors
                   }
-                }
-
-                plugin.getLogger().log(Level.FINE, "Metrics response: " + content.toString());
-              } catch(IOException ignored) {/*fail silently*/}
-            }).start();
-          } catch(IOException ignored) {/*cannot connect or there is a problem*/}
-        });
+              }).start();
+          } catch (IOException ignored) {
+              // Fail silently if there's an issue generating metrics data
+          }
+      });
+      
       }
     }, 1000L * 60 * 5, 1000L * 60 * 30);
   }

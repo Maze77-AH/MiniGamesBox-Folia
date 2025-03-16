@@ -31,6 +31,8 @@ import plugily.projects.minigamesbox.classic.handlers.language.MessageBuilder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * @author Tigerpanzer_02
@@ -63,7 +65,9 @@ public class User implements IUser {
   }
 
   public static void cooldownHandlerTask() {
-    Bukkit.getScheduler().runTaskTimer(plugin, () -> cooldownCounter++, 20, 20);
+  ScheduledTask task = Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
+      Bukkit.getGlobalRegionScheduler().execute(plugin, () -> cooldownCounter++);
+  }, 20L, 20L, TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -138,7 +142,16 @@ public class User implements IUser {
       plugin.getDebugger().debug("Set User {0} statistic to {1} for {2} ", statisticType.getName(), value, player.getName());
 
       //statistics manipulation events are called async when using mysql
-      Bukkit.getScheduler().runTask(plugin, () -> Bukkit.getPluginManager().callEvent(new PlugilyPlayerStatisticChangeEvent(plugin.getArenaRegistry().getArena(player), player, statisticType, value)));
+      Bukkit.getGlobalRegionScheduler().execute(plugin, () ->
+      Bukkit.getPluginManager().callEvent(
+          new PlugilyPlayerStatisticChangeEvent(
+              plugin.getArenaRegistry().getArena(player),
+              player,
+              statisticType,
+              value
+          )
+      )
+  );  
     }
   }
 

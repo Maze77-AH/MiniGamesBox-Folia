@@ -23,6 +23,8 @@ import plugily.projects.minigamesbox.classic.PluginMain;
 import plugily.projects.minigamesbox.classic.utils.services.ServiceRegistry;
 
 import java.util.logging.Level;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import org.bukkit.Bukkit;
 
 /**
  * Create reported exception with data sent to plugily.xyz reporter service
@@ -34,30 +36,33 @@ public class ReportedException {
   public ReportedException(PluginMain plugin, Throwable e) {
     Throwable exception = e.getCause() != null ? e.getCause() : e;
     StringBuilder stacktrace = new StringBuilder(exception.getClass().getSimpleName());
-    if(exception.getMessage() != null) {
-      stacktrace.append(" (").append(exception.getMessage()).append(')');
+    if (exception.getMessage() != null) {
+        stacktrace.append(" (").append(exception.getMessage()).append(')');
     }
     stacktrace.append("\n");
-    for(StackTraceElement str : exception.getStackTrace()) {
-      stacktrace.append(str.toString()).append("\n");
+    for (StackTraceElement str : exception.getStackTrace()) {
+        stacktrace.append(str.toString()).append("\n");
     }
 
     plugin.getLogger().log(Level.WARNING, "[Reporter service] <<-----------------------------[START]----------------------------->>");
     plugin.getLogger().log(Level.WARNING, stacktrace.toString());
     plugin.getLogger().log(Level.WARNING, "[Reporter service] <<------------------------------[END]------------------------------>>");
 
-    if(!ServiceRegistry.isServiceEnabled() || System.currentTimeMillis() - ServiceRegistry.getServiceCooldown() < 900000) {
-      return;
+    if (!ServiceRegistry.isServiceEnabled() || System.currentTimeMillis() - ServiceRegistry.getServiceCooldown() < 900000) {
+        return;
     }
     ServiceRegistry.setServiceCooldown(System.currentTimeMillis());
-    new BukkitRunnable() {
-      @Override
-      public void run() {
-        reporterService = new ReporterService(plugin, plugin.getName(), plugin.getDescription().getVersion(), plugin.getServer().getBukkitVersion() + " " + plugin.getServer().getVersion(),
-            stacktrace.toString());
+
+    Bukkit.getAsyncScheduler().runNow(plugin, (ScheduledTask task) -> {
+        reporterService = new ReporterService(
+            plugin,
+            plugin.getName(),
+            plugin.getDescription().getVersion(),
+            plugin.getServer().getBukkitVersion() + " " + plugin.getServer().getVersion(),
+            stacktrace.toString()
+        );
         reporterService.reportException();
-      }
-    }.runTaskAsynchronously(plugin);
-  }
+    });
+}
 
 }

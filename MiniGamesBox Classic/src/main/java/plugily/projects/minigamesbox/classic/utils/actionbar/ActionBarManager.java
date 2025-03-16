@@ -34,7 +34,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * @author Tigerpanzer_02
@@ -51,7 +53,12 @@ public class ActionBarManager extends BukkitRunnable {
 
   public ActionBarManager(PluginMain plugin) {
     this.plugin = plugin;
-    runTaskTimer(plugin, 0L, period);
+    ScheduledTask task = Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
+        // Wrap any Bukkit API calls to run on the main thread:
+        Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+            // Your repeating code here.
+        });
+    }, 0L, period, TimeUnit.MILLISECONDS);
   }
 
   @SuppressWarnings("deprecation")

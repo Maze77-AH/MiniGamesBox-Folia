@@ -38,7 +38,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 /**
  * @author Tigerpanzer_02
@@ -61,20 +63,20 @@ public class MysqlManager implements UserDatabase {
   }
 
   private void initializeTable(PluginMain plugin) {
-    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-      try(Connection connection = database.getConnection();
-          Statement statement = connection.createStatement()) {
-
-        statement.executeUpdate(createTableStatement);
-
-        updateTable(statement, "ALTER TABLE " + getTableName() + " ADD COLUMN`name` varchar(32) NOT NULL");
-        updateTable(statement, "ALTER TABLE " + getTableName() + " ADD COLUMN `UUID` char(36) NOT NULL PRIMARY KEY");
-
-        plugin.getDebugger().debug("Initialized MySQL Table");
-      } catch(SQLException exception) {
-        throwException(exception);
+    Bukkit.getAsyncScheduler().runNow(plugin, (ScheduledTask task) -> {
+      try (Connection connection = database.getConnection();
+           Statement statement = connection.createStatement()) {
+  
+          statement.executeUpdate(createTableStatement);
+  
+          updateTable(statement, "ALTER TABLE " + getTableName() + " ADD COLUMN `name` varchar(32) NOT NULL");
+          updateTable(statement, "ALTER TABLE " + getTableName() + " ADD COLUMN `UUID` char(36) NOT NULL PRIMARY KEY");
+  
+          plugin.getDebugger().debug("Initialized MySQL Table");
+      } catch (SQLException exception) {
+          throwException(exception);
       }
-    });
+  });  
   }
 
   private void updateTable(@NotNull Statement statement, String sql) {
@@ -91,23 +93,23 @@ public class MysqlManager implements UserDatabase {
 
   @Override
   public void addColumn(String columnName, String columnProperties) {
-    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-      try(Connection connection = database.getConnection(); Statement statement = connection.createStatement()) {
-        updateTable(statement, "ALTER TABLE " + getTableName() + " ADD COLUMN " + columnName + " " + columnProperties + ";");
-        plugin.getDebugger().debug("MySQL Table | Added column {0} {1}", columnName, columnProperties);
-      } catch(SQLException ignored) {
-        //already created column
+    Bukkit.getAsyncScheduler().runNow(plugin, (ScheduledTask task) -> {
+      try (Connection connection = database.getConnection(); 
+           Statement statement = connection.createStatement()) {
+          updateTable(statement, "ALTER TABLE " + getTableName() + " ADD COLUMN " + columnName + " " + columnProperties + ";");
+          plugin.getDebugger().debug("MySQL Table | Added column {0} {1}", columnName, columnProperties);
+      } catch (SQLException ignored) {
+          // already created column
       }
-    });
+  });  
   }
 
   @Override
   public void dropColumn(String columnName) {
-    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-          database.executeUpdate("ALTER TABLE " + getTableName() + " DROP COLUMN " + columnName + ";");
-          plugin.getDebugger().debug("MySQL Table | Dropped column {0}", columnName);
-        }
-    );
+    Bukkit.getAsyncScheduler().runNow(plugin, (ScheduledTask task) -> {
+      database.executeUpdate("ALTER TABLE " + getTableName() + " DROP COLUMN " + columnName + ";");
+      plugin.getDebugger().debug("MySQL Table | Dropped column {0}", columnName);
+  });  
   }
 
   @Override
@@ -117,10 +119,11 @@ public class MysqlManager implements UserDatabase {
 
   @Override
   public void saveStatistic(IUser user, IStatisticType statisticType) {
-    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-      database.executeUpdate("UPDATE " + getTableName() + " SET " + statisticType.getName() + "=" + user.getStatistic(statisticType) + " WHERE UUID='" + user.getUniqueId().toString() + "';");
-      plugin.getDebugger().debug("MySQL Table | Saved {0} statistic to {1} for {2}", statisticType.getName(), user.getStatistic(statisticType), user.getPlayer().getName());
-    });
+      Bukkit.getAsyncScheduler().runNow(plugin, (ScheduledTask task) -> {
+        database.executeUpdate("UPDATE " + getTableName() + " SET " + statisticType.getName() + "=" + user.getStatistic(statisticType) + " WHERE UUID='" + user.getUniqueId().toString() + "';");
+        plugin.getDebugger().debug("MySQL Table | Saved {0} statistic to {1} for {2}",
+                statisticType.getName(), user.getStatistic(statisticType), user.getPlayer().getName());
+    });  
   }
 
   @Override
@@ -129,7 +132,9 @@ public class MysqlManager implements UserDatabase {
       plugin.getDebugger().debug("User been saving while is not is not initialized.");
     } else {
       try {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> database.executeUpdate(getUpdateQuery(user)));
+        Bukkit.getAsyncScheduler().runNow(plugin, task ->
+        database.executeUpdate(getUpdateQuery(user))
+    );
       } catch (IllegalPluginAccessException ignored) {
         database.executeUpdate(getUpdateQuery(user));
       }
@@ -138,23 +143,28 @@ public class MysqlManager implements UserDatabase {
 
   @Override
   public void loadStatistics(IUser user) {
-    Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+  Bukkit.getAsyncScheduler().runDelayed(plugin, task -> {
       String uuid = user.getUniqueId().toString();
-      try(Connection connection = database.getConnection(); Statement statement = connection.createStatement()) {
-        String playerName = user.getPlayer() == null ? Bukkit.getOfflinePlayer(uuid).getName() : user.getPlayer().getName();
+      try (Connection connection = database.getConnection();
+          Statement statement = connection.createStatement()) {
 
-        database.executeUpdate("UPDATE " + getTableName() + " SET name='" + playerName + "' WHERE UUID='" + uuid + "';");
-        ResultSet resultSet = statement.executeQuery("SELECT * from " + getTableName() + " WHERE UUID='" + uuid + "'");
-        if(resultSet.next()) {
-          loadUserStats(user, resultSet);
-        } else {
-          createUserStats(user, uuid, statement, playerName);
-        }
-        user.setInitialized(true);
-      } catch(SQLException exception) {
-        throwException(exception);
+          String playerName = user.getPlayer() == null 
+              ? Bukkit.getOfflinePlayer(uuid).getName() 
+              : user.getPlayer().getName();
+
+          database.executeUpdate("UPDATE " + getTableName() + " SET name='" + playerName + "' WHERE UUID='" + uuid + "';");
+          ResultSet resultSet = statement.executeQuery("SELECT * FROM " + getTableName() + " WHERE UUID='" + uuid + "'");
+
+          if (resultSet.next()) {
+              loadUserStats(user, resultSet);
+          } else {
+              createUserStats(user, uuid, statement, playerName);
+          }
+          user.setInitialized(true);
+      } catch (SQLException exception) {
+          throwException(exception);
       }
-    }, 20L /* required to load stats that are saved on server switch */);
+  }, 20L * 50L, TimeUnit.MILLISECONDS);
   }
 
   /**
